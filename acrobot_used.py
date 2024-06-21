@@ -177,6 +177,16 @@ class AcrobotEnv(core.Env):
         self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
         self.action_space = spaces.Discrete(3)
         self.state = None
+        self.tagged_state = None
+
+    def tag_state(self):
+        self.tagged_state = self.state
+
+    def get_tagged_state(self):
+        return self.tagged_state
+
+    def get_tag_diff(self):
+        return np.array(self.state) - np.array(self.tagged_state)
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed)

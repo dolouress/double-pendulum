@@ -21,45 +21,49 @@ plot_theta2 = np.zeros(samples)
 plot_dtheta2 = np.zeros(samples)
 plot_torque = np.zeros(samples)
 
-data = np.zeros((samples, 3))
+data = np.zeros((samples, 5))
+target_theta1 = np.zeros(samples)
 target_dtheta1 = np.zeros(samples)
+target_theta2 = np.zeros(samples)
 target_dtheta2 = np.zeros(samples)
 
 for i in range(samples):
     torque = random.choice(env.AVAIL_TORQUE)
     duration = random.random() * 0.5
 
-    # Tag initial state
-    state = env.state
-    # print(state)
-    theta1, theta2, dtheta1, dtheta2 = state
-    env.step(torque)
 
+    env.tag_state()
+    first = True
     # Simulate the environment
     t = duration
     while t > 0:
         env.step(torque)
         t -= dt
 
-    # Capture the final state and state changes
-    new_state = env.state
-    delta_theta1 = new_state[0] - theta1
-    delta_theta2 = new_state[1] - theta2
-    delta_dtheta1 = new_state[2] - dtheta1
-    delta_dtheta2 = new_state[3] - dtheta2
+        if first:
+            (theta10, theta20, dtheta10, dtheta20) = env.get_tagged_state()
+            (theta1, theta2, dtheta1, dtheta2) = env.state
+            (delta_theta1, delta_theta2, delta_dtheta1, delta_dtheta2) = env.get_tag_diff()
 
-    # Store the data
-    plot_theta1[i] = np.degrees(theta1)
-    plot_theta2[i] = np.degrees(theta2)
-    plot_dtheta1[i] = np.degrees(dtheta1)
-    plot_dtheta2[i] = np.degrees(dtheta2)
-    plot_torque[i] = torque
+            # Store the data
+            plot_theta1[i] = np.degrees(theta1)
+            plot_theta2[i] = np.degrees(theta2)
+            plot_dtheta1[i] = np.degrees(dtheta1)
+            plot_dtheta2[i] = np.degrees(dtheta2)
+            plot_torque[i] = torque
 
-    data[i, 0] = theta1
-    data[i, 1] = theta2
-    data[i, 2] = torque
-    target_dtheta1[i] = delta_dtheta1
-    target_dtheta2[i] = delta_dtheta2
+            data[i, 0] = theta10
+            data[i, 1] = dtheta10
+            data[i, 2] = theta20
+            data[i, 3] = dtheta20
+            data[i, 4] = torque
+
+            target_theta1[i] = delta_theta1
+            target_theta2[i] = delta_theta2
+            target_dtheta1[i] = delta_dtheta1
+            target_dtheta2[i] = delta_dtheta2
+
+            first = False
 
 # Visualize the data
 scatter_th1th2 = plt.scatter(plot_theta1, plot_theta2, c=plot_torque, cmap='viridis', vmin=-1, vmax=1)
@@ -92,7 +96,7 @@ plt.show()
 
 # Train the qualitative model using PADE
 q_table = pade.pade(data, target_dtheta1, nNeighbours=10)
-q_labels = pade.create_q_labels(q_table[:, 2:3], ['torque'])
+q_labels = pade.create_q_labels(q_table[:, 4:5], ['torque'])
 
 classes, class_names = pade.enumerate_q_labels(q_labels)
 
